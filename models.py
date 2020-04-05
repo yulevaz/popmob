@@ -7,29 +7,27 @@
 import numpy as np
 import scipy as sci
 
-# Create SIR model for epidemic prediction following eq. 4 of pg. 2 in the pre-print "Exact Solution to a Dynamic SIR Model"(Bohner, M.; Streipert, S.; Torres, D. F. M.; 2018).
+
 # @param b			The beta parameter
 # @param c			The gamma parameter
-# @param S0			Initial conditions S
-# @param I0			Initial conditions I
-# @param B			Initial conditions N
-# @param time			Time
+# @param S			Previous conditions S
+# @param I			Previous condition I
+# @param R			Previous conditions R
 # @return float,float,float 	Stock, infected and recovery values
-def SIR_model(b,c,S0,I0,N,t):
-
-	k = I0/S0
-	S = S0 * ((1+k)**(b/(b-c)))*((1+k*np.exp((b-c)*t))**(-b/(b-c)))
-	I = I0 * ((1+k)**(b/(b-c)))*((1+k*np.exp((b-c)*t))**(-b/(b-c)))*np.exp((b-c)*t)
-	R = N - S - I
+def SIR_model(b,c,S,I,R):
+	
+	Sf = S - (b *  I * S)/(S + I + R)
+	If = I + (b * I * S)/(S + I + R) - c * I
+	Rf = R + c * I
  
-	return S,I,R 
+	return Sf,If,Rf 
 
 # Arising of disease in other region
 # @param probs	Probability of a disease to appear
 # @return numpy.array A binary vector associated with the existence of the disease (1 for exist, 0 for don't exist) 
 def appearance(probs):
 
-	probs = np.array(probs)/(np.sum(probs)+1e-10)
+	probs = np.array(probs)
 	appear = np.array(len(probs)*[1])
 	rands = np.random.uniform(0,1,len(probs))
 	idx = np.where(probs-rands < 0)[0]
@@ -37,73 +35,77 @@ def appearance(probs):
 		appear[idx] = 0
 	
 	return appear
-	
 
 # Create SIR-yan model verifying the lockdown for regions A = [a1,a2,...,an] in time t = [t1,t2,...,tn]
+# @param b		Beta param for SIR
+# @param c		Gamma param for SIR
 # @param pops		Population vector
 # @param P0	 	The Yan transition probabilities
-# @param t		Time vector
+# @param days		Number of days
 # @param epi_model 	Lambda function with epidemic model (lambda N,t : SIR_model(b,c,S0,I0,N,t))
 # @param quar		Regions of quarentine
 # @param when_quar	When to quarentine
 # @param lock		Lockdown
-# @param when_lock	When to lockdown 
+# @param when_lock	When to lockdown
+# @param a_lock		Percentage of lockdown 
 # @param first		List with the regions where disease first appears
-def yan_epidemic(pops,P0,t,epi_model,quar,when_quar,lock,when_lock,first):
+def yan_epidemic(b,c,pops,P0,days,epi_model,quar,when_quar,lock,when_lock,first,a_lock):
 
 	L = len(pops)
-	S = np.array(pops)
+	S = np.array(pops).reshape((1,L))
 	I = np.zeros((1,L),dtype=float)
 	I[0,first] = 1
 	R = np.zeros((1,L),dtype=float)
-	S0 = S
-	I0 = I[0,:]
 	P = P0
 	T = []
-	tr = np.array(L*[0])
 	step = 0
+
+	# Cast to numpy.array in order to allow indexing with list
 	when_quar = np.array(when_quar)
 	when_lock = np.array(when_lock)
 	quar = np.array(quar)
 	lock = np.array(lock)
+	b = np.array(b)
+	c = np.array(c)
 	# Factor of dispersion of disease are fixed yet...
-	#TODO: Factorize
-	b = np.array(L * [3.0])
-	c = np.array(L * [1.0])
 
-	for ti in t:
-		mp = map(epi_model,b,c,S0,I0,pops,t[tr])
-		npL = np.array(list(mp))
-		S = np.vstack((S,npL[:,0]))
-		R = np.vstack((R,npL[:,2]))
+	for ti in range(0,days):
+		Sr,Ir,Rr = SIR_model(b,c,S[step,:],I[step,:],R[step,:])
+		
 		# Quarentine
 		idx = np.array(np.where(when_quar == step)[0])
 		qdi = quar[idx]
 		P[qdi.tolist(),:] = 0
 		P[:,qdi.tolist()] = 0
 		# Lockdown
-		idx = np.array(np.where(when_lock == step)[0])
+		idx = np.array(np.where(when_lock <= step)[0])
 		ldi = lock[idx]
-		if len(ldi) > 0:
-			b[ldi.tolist()] = 1.5
-			P[ldi.tolist(),:] = 0
-			P[:,ldi.tolist()] = 0
-			
+		b[ldi] = b[ldi]*(1-a_lock)
+		P[ldi.tolist(),:] = 1-a_lock
+		P[:,ldi.tolist()] = 1-a_lock
+		print(b)
 
-		I = np.vstack((I,npL[:,1]))
-		# Mobilization of infected
-		Iax = np.matmul(P,I[step+1,:])
-		id1 = np.where(I0 >= 1)[0]
-		Iax[id1] = I0[id1]
-		I0 = Iax
-		nid1 = np.delete(range(0,L),id1)
-		I0[nid1] = appearance(I0[nid1])
-		S0 = S[0,:] - I0
-		tr[id1] += 1
-		# Mobilization of population
-		pops = np.matmul(P,pops)
+		# Mobility	
+		Ps = np.matmul(P,Sr)
+		Pi = np.matmul(P,Ir)
+		transf = b * Sr * Pi /(pops + np.sum(P)) 
+		print(b)
+		Sr = Sr - transf
+		
+		idx1 = np.where(Ir < 1)
+		m = np.piecewise(Ir,[Ir < 1, Ir >= 1],[0,1])
+		m[idx1] = appearance(Pi[idx1]) 
+		Ir = Ir + m*transf
+		T.append(np.sum(Ir))	
+
+		# Store values
+		S = np.vstack((S,Sr))
+		R = np.vstack((R,Rr))
+		I = np.vstack((I,Ir))	
+
+		# Update mobility
 		P = np.matmul(P0,P)
-		T.append(np.sum(I[step+1,:]))
+
 		step += 1
 			
 		
