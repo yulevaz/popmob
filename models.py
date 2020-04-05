@@ -65,6 +65,7 @@ def yan_SIR(b,c,pops,P0,days,quar,when_quar,lock,when_lock,first,a_lock):
 	quar = np.array(quar)
 	lock = np.array(lock)
 	b = np.array(b)
+	b0 = b
 	c = np.array(c)
 	# Factor of dispersion of disease are fixed yet...
 
@@ -79,7 +80,7 @@ def yan_SIR(b,c,pops,P0,days,quar,when_quar,lock,when_lock,first,a_lock):
 		# Lockdown
 		idx = np.array(np.where(when_lock <= step)[0])
 		ldi = lock[idx]
-		b[ldi] = b[ldi]*(1-a_lock)
+		b[ldi] = b0[ldi]*(1-a_lock)
 		P[ldi.tolist(),:] = 0
 		P[:,ldi.tolist()] = 0
 
