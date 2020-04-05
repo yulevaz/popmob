@@ -82,13 +82,11 @@ def yan_SIR(b,c,pops,P0,days,quar,when_quar,lock,when_lock,first,a_lock):
 		b[ldi] = b[ldi]*(1-a_lock)
 		P[ldi.tolist(),:] = 1-a_lock
 		P[:,ldi.tolist()] = 1-a_lock
-		print(b)
 
 		# Mobility	
 		Ps = np.matmul(P,Sr)
 		Pi = np.matmul(P,Ir)
 		transf = b * Sr * Pi /(pops + np.sum(P)) 
-		print(b)
 		Sr = Sr - transf
 		
 		idx1 = np.where(Ir < 1)
