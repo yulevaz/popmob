@@ -42,14 +42,13 @@ def appearance(probs):
 # @param pops		Population vector
 # @param P0	 	The Yan transition probabilities
 # @param days		Number of days
-# @param epi_model 	Lambda function with epidemic model (lambda N,t : SIR_model(b,c,S0,I0,N,t))
 # @param quar		Regions of quarentine
 # @param when_quar	When to quarentine
 # @param lock		Lockdown
 # @param when_lock	When to lockdown
 # @param a_lock		Percentage of lockdown 
 # @param first		List with the regions where disease first appears
-def yan_epidemic(b,c,pops,P0,days,epi_model,quar,when_quar,lock,when_lock,first,a_lock):
+def yan_SIR(b,c,pops,P0,days,quar,when_quar,lock,when_lock,first,a_lock):
 
 	L = len(pops)
 	S = np.array(pops).reshape((1,L))
