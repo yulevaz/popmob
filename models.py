@@ -46,8 +46,8 @@ def appearance(probs):
 # @param when_quar	When to quarentine
 # @param lock		Lockdown
 # @param when_lock	When to lockdown
-# @param a_lock		Percentage of lockdown 
 # @param first		List with the regions where disease first appears
+# @param a_lock		Percentage of lockdown 
 def yan_SIR(b,c,pops,P0,days,quar,when_quar,lock,when_lock,first,a_lock):
 
 	L = len(pops)
@@ -80,8 +80,8 @@ def yan_SIR(b,c,pops,P0,days,quar,when_quar,lock,when_lock,first,a_lock):
 		idx = np.array(np.where(when_lock <= step)[0])
 		ldi = lock[idx]
 		b[ldi] = b[ldi]*(1-a_lock)
-		P[ldi.tolist(),:] = 1-a_lock
-		P[:,ldi.tolist()] = 1-a_lock
+		P[ldi.tolist(),:] = 0
+		P[:,ldi.tolist()] = 0
 
 		# Mobility	
 		Ps = np.matmul(P,Sr)
