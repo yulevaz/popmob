@@ -47,13 +47,14 @@ def appearance(probs):
 # @param lock		Lockdown
 # @param when_lock	When to lockdown
 # @param first		List with the regions where disease first appears
+# @param I0		Initial number of infection
 # @param a_lock		Percentage of lockdown 
-def yan_SIR(b,c,pops,P0,days,quar,when_quar,lock,when_lock,first,a_lock):
+def yan_SIR(b,c,pops,P0,days,quar,when_quar,lock,when_lock,first,I0,a_lock):
 
 	L = len(pops)
 	S = np.array(pops).reshape((1,L))
 	I = np.zeros((1,L),dtype=float)
-	I[0,first] = 1
+	I[0,first] = I0
 	R = np.zeros((1,L),dtype=float)
 	P = P0
 	T = []
@@ -67,6 +68,7 @@ def yan_SIR(b,c,pops,P0,days,quar,when_quar,lock,when_lock,first,a_lock):
 	b = np.array(b)
 	b0 = b
 	c = np.array(c)
+	c0 = c
 	# Factor of dispersion of disease are fixed yet...
 
 	for ti in range(0,days):
@@ -81,6 +83,7 @@ def yan_SIR(b,c,pops,P0,days,quar,when_quar,lock,when_lock,first,a_lock):
 		idx = np.array(np.where(when_lock <= step)[0])
 		ldi = lock[idx]
 		b[ldi] = b0[ldi]*(1-a_lock)
+		#c[ldi] = c0[ldi]*(1-a_lock)
 		P[ldi.tolist(),:] = 0
 		P[:,ldi.tolist()] = 0
 
